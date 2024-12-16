@@ -14,18 +14,22 @@ available_models = [
     "unity"  # Hybrid model (used as a text model in this case)
 ]
 
-# Function for handling text generation
-def gpt_text_response(prompt, selected_model):
+# Function for streaming text response
+def gpt_text_response_stream(prompt, selected_model):
     try:
-        response = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model=selected_model,
             messages=[{"role": "user", "content": prompt}],
+            stream=True,  # Enable streaming
         )
-        return response.choices[0].message.content  # Text response
+        # Yield content chunk-by-chunk
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
     except Exception as e:
-        return f"An error occurred with G4F API: {e}"  # Error message
+        yield f"An error occurred with G4F API: {e}"  # Error message
 
-# Apply custom CSS for a modern card-based UI
+# Apply custom CSS for a modern UI
 st.markdown(
     """
     <style>
@@ -102,6 +106,7 @@ st.markdown(
             color: #333;
             font-weight: 500;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
         }
     </style>
     """,
@@ -114,7 +119,7 @@ st.markdown('<div class="main-container">', unsafe_allow_html=True)
 # Title and subtitle
 st.markdown('<h1 class="title">🚀 Modern AI Text Generator</h1>', unsafe_allow_html=True)
 st.markdown(
-    '<p class="subtitle">A sleek, card-based interface for generating text using advanced AI models.</p>',
+    '<p class="subtitle">A sleek, real-time streaming interface for advanced AI models.</p>',
     unsafe_allow_html=True,
 )
 
@@ -136,12 +141,13 @@ if st.button("Generate AI Response"):
     if not prompt.strip():
         st.error("⚠️ Please provide a valid prompt!")
     else:
-        with st.spinner("🔄 Generating your response..."):
-            response = gpt_text_response(prompt, selected_model)
-        
-        # Display the response inside a card
         st.markdown('<div class="response-card">', unsafe_allow_html=True)
-        st.write(response)
+        response_container = st.empty()  # Placeholder for dynamic content
+        full_response = ""  # To accumulate the streamed content
+        with st.spinner("🔄 Generating your response..."):
+            for chunk in gpt_text_response_stream(prompt, selected_model):
+                full_response += chunk  # Append new chunks
+                response_container.markdown(full_response)  # Update content dynamically
         st.markdown('</div>', unsafe_allow_html=True)
 
 # Closing container
