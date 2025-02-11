@@ -123,12 +123,15 @@ if mode == "Text Generation":
 
     # List of available text generation models for g4f
     available_text_models = [
+        "o3-mini",          # Previously added model
+        "gemini-1.5-pro",   # Newly added model
+        "deepseek-r1",      # Newly added model
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-4",
         "gpt-3.5-turbo",
         "claude-3.5-sonnet",
-        "unity"
+        "evil"              # Newly added model; "unity" has been removed
     ]
     selected_model = st.selectbox("Select a model:", options=available_text_models)
 
