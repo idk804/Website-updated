@@ -9,7 +9,7 @@ from PIL import Image
 
 def gpt_text_response_stream(prompt, selected_model):
     """
-    Stream text responses using g4f with a text-only model.
+    Stream text responses using g4f with a text-only model (streaming).
     """
     client = g4f.Client()
     try:
@@ -25,16 +25,31 @@ def gpt_text_response_stream(prompt, selected_model):
         yield f"An error occurred: {e}"
 
 
+def gpt_text_response_no_stream(prompt, selected_model):
+    """
+    Retrieve the text response for a given prompt without streaming.
+    (Used for the "evil" model.)
+    """
+    client = g4f.Client()
+    try:
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[{"role": "user", "content": prompt}],
+            stream=False  # Disable streaming
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"An error occurred: {e}"
+
+
 def chat_completion_vision(prompt, uploaded_images):
     """
     Send a prompt along with one or more images to a vision-enabled text model.
     This example uses the Blackbox provider.
     """
-    # Initialize the g4f client with the Blackbox provider
     client = g4f.Client(provider=g4f.Provider.Blackbox)
     images = []
     for uploaded_file in uploaded_images:
-        # Each image is passed as a list with the file object and its filename.
         images.append([uploaded_file, uploaded_file.name])
     try:
         response = client.chat.completions.create(
@@ -121,17 +136,15 @@ if mode == "Text Generation":
     prompt = st.text_area("Enter your prompt:", placeholder="Type something creative...", height=150)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # List of available text generation models for g4f
+    # Updated list of available text generation models
     available_text_models = [
-        "o3-mini",          # Previously added model
-        "gemini-1.5-pro",   # Newly added model
-        "deepseek-r1",      # Newly added model
+        "deepseek-r1",
         "gpt-4o-mini",
         "gpt-4o",
         "gpt-4",
         "gpt-3.5-turbo",
         "claude-3.5-sonnet",
-        "evil"              # Newly added model; "unity" has been removed
+        "evil"  # "evil" will be processed without streaming
     ]
     selected_model = st.selectbox("Select a model:", options=available_text_models)
 
@@ -140,12 +153,17 @@ if mode == "Text Generation":
             st.error("⚠️ Please enter a valid prompt!")
         else:
             st.markdown('<div class="response-card">', unsafe_allow_html=True)
-            response_container = st.empty()
-            full_response = ""
             with st.spinner("🔄 Generating text response..."):
-                for chunk in gpt_text_response_stream(prompt, selected_model):
-                    full_response += chunk
-                    response_container.markdown(full_response)
+                # If the selected model is "evil", use the non-streaming function.
+                if selected_model == "evil":
+                    result = gpt_text_response_no_stream(prompt, selected_model)
+                    st.write(result)
+                else:
+                    response_container = st.empty()
+                    full_response = ""
+                    for chunk in gpt_text_response_stream(prompt, selected_model):
+                        full_response += chunk
+                        response_container.markdown(full_response)
             st.markdown('</div>', unsafe_allow_html=True)
 
 # -----------------------
