@@ -1,12 +1,20 @@
 import streamlit as st
 import g4f
 
-# Custom CSS for styling
+# Custom CSS for modern styling and animations
 st.markdown("""
     <style>
+    /* General styling */
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f5f5f5;
+    }
     .stTextInput>div>div>input {
         color: #4F8BF9;
-        background-color: #F0F2F6;
+        background-color: #ffffff;
+        border: 1px solid #4F8BF9;
+        border-radius: 5px;
+        padding: 10px;
     }
     .stButton>button {
         color: white;
@@ -14,6 +22,8 @@ st.markdown("""
         border-radius: 5px;
         padding: 10px 20px;
         border: none;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
     }
     .stButton>button:hover {
         background-color: #3a6bb7;
@@ -23,6 +33,7 @@ st.markdown("""
         border-radius: 10px;
         margin: 5px 0;
         max-width: 70%;
+        animation: fadeIn 0.5s ease;
     }
     .user-message {
         background-color: #4F8BF9;
@@ -33,6 +44,27 @@ st.markdown("""
         background-color: #F0F2F6;
         color: black;
         margin-right: auto;
+    }
+    /* Password screen styling */
+    .password-screen {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+    }
+    .password-screen h1 {
+        font-size: 2.5rem;
+        color: #4F8BF9;
+        margin-bottom: 20px;
+    }
+    .password-screen input {
+        margin-bottom: 20px;
+    }
+    /* Animation for chatbot reveal */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -55,10 +87,18 @@ def get_bot_response(user_input, model):
     )
     return response
 
-# Password input
+# Password input screen
 if not st.session_state.authenticated:
-    st.title("Enter Password to Access Chatbot")
-    password_input = st.text_input("Password:", type="password")
+    st.markdown(
+        """
+        <div class="password-screen">
+            <h1>Welcome to Private Chatbot</h1>
+            <p>Enter the password to access the site.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    password_input = st.text_input("Password:", type="password", key="password_input")
     if st.button("Submit"):
         if password_input == PASSWORD:
             st.session_state.authenticated = True
@@ -68,7 +108,15 @@ if not st.session_state.authenticated:
 
 # If authenticated, show the chatbot interface
 if st.session_state.authenticated:
-    st.title("Chatbot with Streamlit and g4f")
+    st.markdown(
+        """
+        <div style="animation: fadeIn 1s ease;">
+            <h1 style="text-align: center; color: #4F8BF9;">Private Chatbot</h1>
+            <p style="text-align: center; color: #666;">You are now accessing the private chatbot.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Model selection dropdown
     model = st.selectbox(
