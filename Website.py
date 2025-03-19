@@ -102,7 +102,7 @@ if not st.session_state.authenticated:
     if st.button("Submit"):
         if password_input == PASSWORD:
             st.session_state.authenticated = True
-            st.experimental_rerun()  # Rerun the app to show the chatbot interface
+            st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
         else:
             st.error("Incorrect password. Please try again.")
 
@@ -149,4 +149,4 @@ if st.session_state.authenticated:
             st.session_state.messages.append({"role": "assistant", "content": bot_response})
             
             # Rerun the app to update the chat display
-            st.experimental_rerun()
+            st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
