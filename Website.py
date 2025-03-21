@@ -78,12 +78,13 @@ if "messages" not in st.session_state:
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# Function to get bot response using g4f
-def get_bot_response(user_input, model):
+# Function to get bot response using g4f with streaming
+def get_bot_response_stream(user_input, model):
     response = g4f.ChatCompletion.create(
         model=model,
         provider=g4f.Provider.Blackbox,
         messages=[{"role": "user", "content": user_input}],
+        stream=True,  # Enable streaming
     )
     return response
 
@@ -141,12 +142,18 @@ if st.session_state.authenticated:
         if user_input:
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            # Get bot response
-            bot_response = get_bot_response(user_input, model)
-            
-            # Add bot response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": bot_response})
-            
+
+            # Create a placeholder for the bot's streaming response
+            bot_response_placeholder = st.empty()
+
+            # Stream the bot's response
+            full_response = ""
+            for chunk in get_bot_response_stream(user_input, model):
+                full_response += chunk
+                bot_response_placeholder.markdown(f'<div class="chat-message bot-message">{full_response}</div>', unsafe_allow_html=True)
+
+            # Add the full bot response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+
             # Rerun the app to update the chat display
             st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
