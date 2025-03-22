@@ -5,7 +5,7 @@ import os
 # Initialize the G4F client
 client = Client(provider="g4f.Provider.Blackbox")
 
-# Updated list of available models
+# Available models
 available_models = [
     "o1",  # Model 1
     "o3-mini",  # Model 2
@@ -204,13 +204,8 @@ if st.button("Send Message"):
         # Add bot's response to chat history
         st.session_state.chat_history.append({"role": "bot", "content": response})
 
-        # Set the flag to indicate rerun
-        st.session_state.chat_updated = True  # Flag set to True to trigger the rerun
-
-        # Trigger the rerun by simply updating session state
-        if "chat_updated" in st.session_state and st.session_state.chat_updated:
-            st.session_state.chat_updated = False
-            st.experimental_rerun()
+        # No need to call st.experimental_rerun() or any similar function
+        # Streamlit will automatically rerun when session state changes
 
 # Closing container
 st.markdown('</div>', unsafe_allow_html=True)
