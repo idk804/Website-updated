@@ -1,159 +1,180 @@
 import streamlit as st
-import g4f
+from g4f.client import Client
+import os
 
-# List the models to be used
-models = [
-    "o1", 
-    "o3-mini", 
-    "deepseek-r1", 
-    "gpt-4o", 
-    "claude-3.7-sonnet"
+# Initialize the G4F client
+client = Client(provider="g4f.Provider.Blackbox")
+
+# Updated list of available models
+available_models = [
+    "o1",  # Model 1
+    "o3-mini",  # Model 2
+    "deepseek-r1",  # Model 3
+    "gpt-4o",  # Model 4
+    "claude-3.7-sonnet"  # Model 5
 ]
 
-# Set up the title and layout of the page
-st.set_page_config(page_title="Modern Chatbot", layout="centered")
-st.title("💬 Modern Chatbot with G4F")
-
-# Adding custom CSS to style the page
-st.markdown("""
-<style>
-    body {
-        font-family: 'Helvetica Neue', sans-serif;
-        background-color: #F7F8FA;
-        margin: 0;
-        padding: 0;
-        color: #333;
-    }
-
-    .chat-container {
-        max-width: 600px;
-        margin: 20px auto;
-        background-color: #fff;
-        border-radius: 15px;
-        box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-        padding: 25px;
-    }
-
-    .chat-header {
-        text-align: center;
-        margin-bottom: 20px;
-        font-size: 28px;
-        font-weight: bold;
-        color: #4CAF50;
-    }
-
-    .input-container {
-        margin-top: 30px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .message {
-        padding: 12px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-        font-size: 16px;
-        max-width: 80%;
-        word-wrap: break-word;
-        line-height: 1.4;
-    }
-
-    .user-message {
-        background-color: #DCF8C6;
-        margin-left: auto;
-        border-radius: 15px 15px 0 15px;
-    }
-
-    .bot-message {
-        background-color: #E4E6EB;
-        border-radius: 15px 15px 15px 0;
-    }
-
-    .input-box {
-        width: 100%;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #ddd;
-        font-size: 16px;
-        box-sizing: border-box;
-        transition: border-color 0.3s ease;
-    }
-
-    .input-box:focus {
-        border-color: #4CAF50;
-    }
-
-    .send-button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 14px;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        font-size: 18px;
-        transition: background-color 0.3s ease;
-    }
-
-    .send-button:hover {
-        background-color: #45a049;
-    }
-
-    .model-select {
-        font-size: 16px;
-        padding: 10px;
-        border-radius: 10px;
-        background-color: #fff;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-
-</style>
-""", unsafe_allow_html=True)
-
-# Function to get G4F responses for selected models
-def get_model_responses(model: str, prompt: str):
+# Function to handle text or vision response
+def gpt_response(prompt, selected_model, images=None):
     try:
-        # Fetch response from the current model
-        response = g4f.ChatCompletion.create(
-            model=model,  # specify the model
-            provider=g4f.Provider.Blackbox,  # specify the provider
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        return f"Error: {str(e)}"
+        if images:
+            # Save uploaded images to a local directory
+            image_dir = "uploaded_images"
+            os.makedirs(image_dir, exist_ok=True)  # Ensure the directory exists
+            saved_images = []
+            for image in images:
+                file_path = os.path.join(image_dir, image.name)
+                with open(file_path, "wb") as f:
+                    f.write(image.getbuffer())  # Save image content
+                saved_images.append([open(file_path, "rb"), file_path])
 
-# Main Chatbot logic
-def chat():
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-
-    # Display chat history
-    for message in st.session_state.chat_history:
-        if message["sender"] == "user":
-            st.markdown(f'<div class="message user-message">{message["text"]}</div>', unsafe_allow_html=True)
+            # Vision + Text response
+            response = client.chat.completions.create(
+                model=selected_model,
+                messages=[{"role": "user", "content": prompt}],
+                images=saved_images,
+            )
         else:
-            st.markdown(f'<div class="message bot-message">{message["text"]}</div>', unsafe_allow_html=True)
+            # Text-only response
+            response = client.chat.completions.create(
+                model=selected_model,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"An error occurred with G4F API: {e}"
 
-    # Dropdown to select the model
-    model_choice = st.selectbox("Choose a Model:", models, key="model", label_visibility="collapsed", index=0, help="Select the chatbot model")
+# Apply custom CSS for a modern UI
+st.markdown(
+    """
+    <style>
+        .stApp {
+            background-color: #f5f7fa;
+            font-family: 'Roboto', sans-serif;
+        }
 
-    # User input for the chatbot
-    user_input = st.text_input("Type your message:", key="input", placeholder="Ask me anything...", label_visibility="collapsed")
+        .main-container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 2rem;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
 
-    if user_input:
-        # Store user message
-        st.session_state.chat_history.append({"sender": "user", "text": user_input})
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a73e8;
+            text-align: center;
+        }
 
-        # Get response from selected model
-        bot_response = get_model_responses(model_choice, user_input)
+        .subtitle {
+            font-size: 1.1rem;
+            color: #333;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
-        # Store bot response
-        st.session_state.chat_history.append({"sender": "bot", "text": bot_response})
+        .input-card {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
 
-        # Call st.rerun() to refresh the page and display updated chat
-        st.rerun()
+        textarea, select, input {
+            font-size: 16px !important;
+            border-radius: 8px !important;
+            padding: 12px !important;
+            width: 100%;
+        }
 
-# Run the chatbot function
-chat()
+        .stButton > button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            padding: 12px 24px;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .stButton > button:hover {
+            background-color: #1558b0;
+        }
+
+        .response-card {
+            background: #f1f8e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            white-space: pre-wrap;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Layout setup
+st.markdown('<div class="main-container">', unsafe_allow_html=True)
+
+# Title and subtitle
+st.markdown('<h1 class="title">🚀 Modern AI Text + Vision Generator</h1>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="subtitle">Use advanced AI models to generate text or analyze images.</p>',
+    unsafe_allow_html=True,
+)
+
+# Input area card
+st.markdown('<div class="input-card">', unsafe_allow_html=True)
+prompt = st.text_area(
+    "Enter your prompt:",
+    placeholder="Describe something or ask about images...",
+    height=150,
+)
+selected_model = st.selectbox(
+    "Select a model:",
+    options=available_models,
+)
+
+# Image upload for all models
+st.markdown("### Upload Images for Vision Analysis (Optional)")
+uploaded_images = st.file_uploader(
+    "Upload one or more images:",
+    type=["jpg", "jpeg", "png", "webp"],
+    accept_multiple_files=True,
+)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Button and AI response
+if st.button("Generate AI Response"):
+    if not prompt.strip():
+        st.error("⚠️ Please provide a valid prompt!")
+    else:
+        if uploaded_images and len(uploaded_images) > 0:
+            st.markdown('<div class="response-card">', unsafe_allow_html=True)
+            response_container = st.empty()  # Placeholder for dynamic content
+            full_response = ""
+            with st.spinner("🔄 Generating your response..."):
+                full_response = gpt_response(prompt, selected_model, uploaded_images)
+            response_container.markdown(full_response)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="response-card">', unsafe_allow_html=True)
+            response_container = st.empty()  # Placeholder for dynamic content
+            full_response = ""
+            with st.spinner("🔄 Generating your response..."):
+                full_response = gpt_response(prompt, selected_model)
+            response_container.markdown(full_response)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+# Closing container
+st.markdown('</div>', unsafe_allow_html=True)
