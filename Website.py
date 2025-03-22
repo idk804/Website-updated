@@ -12,7 +12,7 @@ models = [
 
 # Set up the title and layout of the page
 st.set_page_config(page_title="Modern Chatbot", layout="centered")
-st.title("💬 Modern Chatbot by gabriel")
+st.title("💬 Modern Chatbot with G4F")
 
 # Adding custom CSS to style the page
 st.markdown("""
@@ -152,8 +152,8 @@ def chat():
         # Store bot response
         st.session_state.chat_history.append({"sender": "bot", "text": bot_response})
 
-        # Rerun to update the chat
-        st.experimental_rerun()
+        # Call st.rerun() to refresh the page and display updated chat
+        st.rerun()
 
 # Run the chatbot function
 chat()
