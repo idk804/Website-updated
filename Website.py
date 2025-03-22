@@ -204,8 +204,13 @@ if st.button("Send Message"):
         # Add bot's response to chat history
         st.session_state.chat_history.append({"role": "bot", "content": response})
 
-        # Refresh the page to show new messages
-        st.experimental_rerun()
+        # Set the flag to indicate rerun
+        st.session_state.chat_updated = True  # Flag set to True to trigger the rerun
+
+        # Trigger the rerun by simply updating session state
+        if "chat_updated" in st.session_state and st.session_state.chat_updated:
+            st.session_state.chat_updated = False
+            st.experimental_rerun()
 
 # Closing container
 st.markdown('</div>', unsafe_allow_html=True)
