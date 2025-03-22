@@ -1,159 +1,159 @@
 import streamlit as st
 import g4f
 
-# Custom CSS for modern styling and animations
+# List the models to be used
+models = [
+    "o1", 
+    "o3-mini", 
+    "deepseek-r1", 
+    "gpt-4o", 
+    "claude-3.7-sonnet"
+]
+
+# Set up the title and layout of the page
+st.set_page_config(page_title="Modern Chatbot", layout="centered")
+st.title("💬 Modern Chatbot by gabriel")
+
+# Adding custom CSS to style the page
 st.markdown("""
-    <style>
-    /* General styling */
+<style>
     body {
-        font-family: 'Arial', sans-serif;
-        background-color: #f5f5f5;
+        font-family: 'Helvetica Neue', sans-serif;
+        background-color: #F7F8FA;
+        margin: 0;
+        padding: 0;
+        color: #333;
     }
-    .stTextInput>div>div>input {
-        color: #4F8BF9;
-        background-color: #ffffff;
-        border: 1px solid #4F8BF9;
-        border-radius: 5px;
-        padding: 10px;
+
+    .chat-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #fff;
+        border-radius: 15px;
+        box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        padding: 25px;
     }
-    .stButton>button {
-        color: white;
-        background-color: #4F8BF9;
-        border-radius: 5px;
-        padding: 10px 20px;
-        border: none;
+
+    .chat-header {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 28px;
+        font-weight: bold;
+        color: #4CAF50;
+    }
+
+    .input-container {
+        margin-top: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .message {
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 15px;
         font-size: 16px;
+        max-width: 80%;
+        word-wrap: break-word;
+        line-height: 1.4;
+    }
+
+    .user-message {
+        background-color: #DCF8C6;
+        margin-left: auto;
+        border-radius: 15px 15px 0 15px;
+    }
+
+    .bot-message {
+        background-color: #E4E6EB;
+        border-radius: 15px 15px 15px 0;
+    }
+
+    .input-box {
+        width: 100%;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #ddd;
+        font-size: 16px;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease;
+    }
+
+    .input-box:focus {
+        border-color: #4CAF50;
+    }
+
+    .send-button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 14px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
         transition: background-color 0.3s ease;
     }
-    .stButton>button:hover {
-        background-color: #3a6bb7;
+
+    .send-button:hover {
+        background-color: #45a049;
     }
-    .chat-message {
+
+    .model-select {
+        font-size: 16px;
         padding: 10px;
         border-radius: 10px;
-        margin: 5px 0;
-        max-width: 70%;
-        animation: fadeIn 0.5s ease;
-    }
-    .user-message {
-        background-color: #4F8BF9;
-        color: white;
-        margin-left: auto;
-    }
-    .bot-message {
-        background-color: #F0F2F6;
-        color: black;
-        margin-right: auto;
-    }
-    /* Password screen styling */
-    .password-screen {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        flex-direction: column;
-    }
-    .password-screen h1 {
-        font-size: 2.5rem;
-        color: #4F8BF9;
+        background-color: #fff;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         margin-bottom: 20px;
     }
-    .password-screen input {
-        margin-bottom: 20px;
-    }
-    /* Animation for chatbot reveal */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    </style>
-    """, unsafe_allow_html=True)
 
-# Password protection
-PASSWORD = "rosana2012"  # Set your password here
+</style>
+""", unsafe_allow_html=True)
 
-# Initialize session state for chat history and password verification
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+# Function to get G4F responses for selected models
+def get_model_responses(model: str, prompt: str):
+    try:
+        # Fetch response from the current model
+        response = g4f.ChatCompletion.create(
+            model=model,  # specify the model
+            provider=g4f.Provider.Blackbox,  # specify the provider
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"Error: {str(e)}"
 
-# Function to get bot response using g4f with streaming
-def get_bot_response_stream(user_input, model):
-    response = g4f.ChatCompletion.create(
-        model=model,
-        provider=g4f.Provider.Blackbox,
-        messages=[{"role": "user", "content": user_input}],
-        stream=True,  # Enable streaming
-    )
-    return response
+# Main Chatbot logic
+def chat():
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-# Password input screen
-if not st.session_state.authenticated:
-    st.markdown(
-        """
-        <div class="password-screen">
-            <h1>Welcome to Private Chatbot</h1>
-            <p>Enter the password to access the site.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    password_input = st.text_input("Password:", type="password", key="password_input")
-    if st.button("Submit"):
-        if password_input == PASSWORD:
-            st.session_state.authenticated = True
-            st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
+    # Display chat history
+    for message in st.session_state.chat_history:
+        if message["sender"] == "user":
+            st.markdown(f'<div class="message user-message">{message["text"]}</div>', unsafe_allow_html=True)
         else:
-            st.error("Incorrect password. Please try again.")
+            st.markdown(f'<div class="message bot-message">{message["text"]}</div>', unsafe_allow_html=True)
 
-# If authenticated, show the chatbot interface
-if st.session_state.authenticated:
-    st.markdown(
-        """
-        <div style="animation: fadeIn 1s ease;">
-            <h1 style="text-align: center; color: #4F8BF9;">Private Chatbot</h1>
-            <p style="text-align: center; color: #666;">You are now accessing the private chatbot.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Dropdown to select the model
+    model_choice = st.selectbox("Choose a Model:", models, key="model", label_visibility="collapsed", index=0, help="Select the chatbot model")
 
-    # Model selection dropdown
-    model = st.selectbox(
-        "Select Model",
-        options=["o3-mini", "o1", "gemini-1.5-pro", "claude-3.7-sonnet"],
-        index=0,  # Default selection
-    )
+    # User input for the chatbot
+    user_input = st.text_input("Type your message:", key="input", placeholder="Ask me anything...", label_visibility="collapsed")
 
-    # Display chat messages
-    for message in st.session_state.messages:
-        with st.container():
-            if message["role"] == "user":
-                st.markdown(f'<div class="chat-message user-message">{message["content"]}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown(f'<div class="chat-message bot-message">{message["content"]}</div>', unsafe_allow_html=True)
+    if user_input:
+        # Store user message
+        st.session_state.chat_history.append({"sender": "user", "text": user_input})
 
-    # User input
-    user_input = st.text_input("You: ", "")
+        # Get response from selected model
+        bot_response = get_model_responses(model_choice, user_input)
 
-    # Send button
-    if st.button("Send"):
-        if user_input:
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": user_input})
+        # Store bot response
+        st.session_state.chat_history.append({"sender": "bot", "text": bot_response})
 
-            # Create a placeholder for the bot's streaming response
-            bot_response_placeholder = st.empty()
+        # Rerun to update the chat
+        st.experimental_rerun()
 
-            # Stream the bot's response
-            full_response = ""
-            for chunk in get_bot_response_stream(user_input, model):
-                full_response += chunk
-                bot_response_placeholder.markdown(f'<div class="chat-message bot-message">{full_response}</div>', unsafe_allow_html=True)
-
-            # Add the full bot response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-
-            # Rerun the app to update the chat display
-            st.rerun()  # Use st.rerun() instead of st.experimental_rerun()
+# Run the chatbot function
+chat()
