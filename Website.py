@@ -117,6 +117,26 @@ st.markdown(
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             white-space: pre-wrap;
         }
+
+        .message-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .user-message {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #d1e8ff;
+            max-width: 80%;
+            margin: 5px 0;
+        }
+
+        .bot-message {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f1f8e9;
+            max-width: 80%;
+            margin: 5px 0;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -126,9 +146,9 @@ st.markdown(
 st.markdown('<div class="main-container">', unsafe_allow_html=True)
 
 # Title and subtitle
-st.markdown('<h1 class="title">🚀 Modern AI Text + Vision Generator</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="title">🚀 Modern AI Chatbot</h1>', unsafe_allow_html=True)
 st.markdown(
-    '<p class="subtitle">Use advanced AI models to generate text or analyze images.</p>',
+    '<p class="subtitle">Interact with AI models by sending text and images. Enjoy the chat experience!</p>',
     unsafe_allow_html=True,
 )
 
@@ -144,37 +164,48 @@ selected_model = st.selectbox(
     options=available_models,
 )
 
-# Image upload for all models
-st.markdown("### Upload Images for Vision Analysis (Optional)")
+# Image upload button
 uploaded_images = st.file_uploader(
-    "Upload one or more images:",
+    "Upload an image to send with your message:",
     type=["jpg", "jpeg", "png", "webp"],
     accept_multiple_files=True,
 )
 
+# Chat history container
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# Function to display messages in chat format
+def display_chat_history():
+    for message in st.session_state.chat_history:
+        if message["role"] == "user":
+            st.markdown(f'<div class="message-container"><div class="user-message">{message["content"]}</div></div>', unsafe_allow_html=True)
+        elif message["role"] == "bot":
+            st.markdown(f'<div class="message-container"><div class="bot-message">{message["content"]}</div></div>', unsafe_allow_html=True)
+
+display_chat_history()
+
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Button and AI response
-if st.button("Generate AI Response"):
+# Button to send message
+if st.button("Send Message"):
     if not prompt.strip():
         st.error("⚠️ Please provide a valid prompt!")
     else:
-        if uploaded_images and len(uploaded_images) > 0:
-            st.markdown('<div class="response-card">', unsafe_allow_html=True)
-            response_container = st.empty()  # Placeholder for dynamic content
-            full_response = ""
-            with st.spinner("🔄 Generating your response..."):
-                full_response = gpt_response(prompt, selected_model, uploaded_images)
-            response_container.markdown(full_response)
-            st.markdown('</div>', unsafe_allow_html=True)
+        # Add user's message to chat history
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
+
+        # Generate response based on user input
+        if uploaded_images:
+            response = gpt_response(prompt, selected_model, uploaded_images)
         else:
-            st.markdown('<div class="response-card">', unsafe_allow_html=True)
-            response_container = st.empty()  # Placeholder for dynamic content
-            full_response = ""
-            with st.spinner("🔄 Generating your response..."):
-                full_response = gpt_response(prompt, selected_model)
-            response_container.markdown(full_response)
-            st.markdown('</div>', unsafe_allow_html=True)
+            response = gpt_response(prompt, selected_model)
+
+        # Add bot's response to chat history
+        st.session_state.chat_history.append({"role": "bot", "content": response})
+
+        # Refresh the page to show new messages
+        st.experimental_rerun()
 
 # Closing container
 st.markdown('</div>', unsafe_allow_html=True)
